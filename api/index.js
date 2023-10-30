@@ -12,7 +12,7 @@ app.use(cors());
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
-const url = "mongodb+srv://azizmahamat:Azerty123@cluster0.k8bfku2.mongodb.net/";
+const url = "mongodb+srv://azizmahamat:password@cluster0.k8bfku2.mongodb.net/";
 mongoose
   .connect(url, {
     useNewUrlParser: true,
@@ -39,7 +39,7 @@ const sendVerificationEmail = async (email, verificationToken) => {
     service: "gmail",
     auth: {
       user: "azizmahamat@gmail.com",
-      pass: "cehzlxcxvdgnftep",
+      pass: "",
     },
   });
   const mailOptions = {
