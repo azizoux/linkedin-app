@@ -5,6 +5,8 @@ const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 const jwt = require("jsonwebtoken");
 
+import { mdbPass, email, password } from "./secret";
+
 const app = express();
 const port = 5000;
 const cors = require("cors");
@@ -12,7 +14,7 @@ app.use(cors());
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
-const url = "mongodb+srv://azizmahamat:password@cluster0.k8bfku2.mongodb.net/";
+const url = `mongodb+srv://azizmahamat:${mdbPass}@cluster0.k8bfku2.mongodb.net/`;
 mongoose
   .connect(url, {
     useNewUrlParser: true,
@@ -38,8 +40,8 @@ const sendVerificationEmail = async (email, verificationToken) => {
   const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
-      user: "azizmahamat@gmail.com",
-      pass: "",
+      user: email,
+      pass: password,
     },
   });
   const mailOptions = {
@@ -238,5 +240,72 @@ app.get("/connections/:userId", async (req, res) => {
   } catch (error) {
     console.log("error fetching the connections", error);
     res.status(500).json({ message: "Error fecthing the connections" });
+  }
+});
+//endpoint to create a post
+app.post("/create", async (req, res) => {
+  try {
+    console.log("req.body:", req.body);
+    const { description, imageUrl, userId } = req.body;
+    const newPost = Post({
+      description: description,
+      imageUrl: imageUrl,
+      user: userId,
+    });
+    await newPost.save();
+    res
+      .status(201)
+      .json({ message: "Post created successfully", post: newPost });
+  } catch (error) {
+    console.log("error creating the post", error);
+    res.status(500).json({ message: "Error creating the post" });
+  }
+});
+//endpoint to fetch all the posts
+app.get("/all-posts", async (req, res) => {
+  try {
+    const posts = await Post.find().populate("user", "name profileImage");
+    res.status(200).json({ posts });
+  } catch (error) {
+    console.log("error fecthing all the posts");
+    res.status(500).json({ message: "Error fetching all the posts" });
+  }
+});
+// endpoint to like or unlike post
+app.post("/like/:postId/:userId", async (req, res) => {
+  try {
+    const postId = req.params.postId;
+    const userId = req.params.userId;
+
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(400).json({ message: "Post not found" });
+    }
+    //check if the user has already liked the post
+    const existingLike = post?.likes.find(
+      (like) => like.user.toString() === userId
+    );
+    if (existingLike) {
+      post.likes = post.likes.filter((like) => like.user.toString() !== userId);
+    } else {
+      post.likes.push({ user: userId });
+    }
+    await post.save();
+    res.status(200).json({ message: "Post liked/unliked successfully", post });
+  } catch (error) {
+    console.log("error liking or unliking a post", error);
+    res.status(500).json({ message: "Error liking the post" });
+  }
+});
+//endpoint to update user description
+app.put("/profile/:userId", async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const { userDescription } = req.body;
+    await User.findByIdAndUpdate(userId, { userDescription });
+    res.status(200).json({ message: "User profile updated successfully" });
+  } catch (error) {
+    console.log("Error updating user Profile", error);
+    res.status(500).json({ message: "Error updating user profile" });
   }
 });
